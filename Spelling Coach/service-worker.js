@@ -5,6 +5,9 @@ const FILES_TO_CACHE = [
   "/Spelling-Coach/manifest.json",
   "/Spelling-Coach/icon-192.png",
   "/Spelling-Coach/icon-512.png"
+  "/Spelling-Coach/images/robot.png",
+  "/Spelling-Coach/images/roblox.png",
+  "/Spelling-Coach/images/dino.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -22,4 +25,5 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
 
