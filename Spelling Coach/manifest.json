@@ -1,7 +1,7 @@
 {
   "name": "Spelling Coach",
   "short_name": "Spelling",
-  "start_url": "index.html",
+  "start_url": "/Spelling-Coach/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2f62ff",
@@ -19,4 +19,5 @@
     }
   ]
 }
+
 
