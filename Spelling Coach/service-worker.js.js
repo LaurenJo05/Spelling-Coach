@@ -1,10 +1,10 @@
-const CACHE_NAME = "spelling-coach-cache-v1";
+iconst CACHE_NAME = "spelling-coach-cache-v1";
 const FILES_TO_CACHE = [
-  "/",
-  "/index.html",
-  "/manifest.json",
-  "/icon-192.png",
-  "/icon-512.png"
+  "/spelling-coach/",
+  "/spelling-coach/index.html",
+  "/spelling-coach/manifest.json",
+  "/spelling-coach/icon-192.png",
+  "/spelling-coach/icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -22,3 +22,4 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
