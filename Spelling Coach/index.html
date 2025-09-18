@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f62ff">
+<title>Spelling Buddy — Game Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+body{
+  margin:0;
+  font-family:'Comic Neue',Arial,sans-serif;
+  background: linear-gradient(135deg,#ffedbc,#a0e7ff);
+  overflow-x:hidden;
+  position:relative;
+  color:#123;
+}
+.app{max-width:980px;margin:18px auto;padding:14px;background:#fff;border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.12);}
+header{display:flex;align-items:center;gap:12px}
+h1{margin:0;font-size:1.6rem;color:#14335e;font-family:'Fredoka One',sans-serif;}
+.subtitle{font-size:0.95rem;color:#234}
+.layout{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px}
+.left{flex:1 1 520px;min-width:320px}
+.right{width:340px;min-width:260px}
+.panel{background:#f7fbff;padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.04);}
+label{display:block;font-weight:700;margin-top:8px}
+input,textarea,select,button{font-size:15px}
+input,textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid #dbeefd;box-sizing:border-box}
+textarea{min-height:80px;resize:vertical}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+button.primary{background:#2f62ff;color:#fff;border:0;padding:10px 12px;border-radius:8px;cursor:pointer}
+button.secondary{background:#fff;border:1px solid #cfe6ff;padding:10px 12px;border-radius:8px;cursor:pointer}
+.card{background: linear-gradient(135deg,#fffdc1,#c1fff0); padding: 20px; border-radius:16px; text-align:center; box-shadow:0 8px 20px rgba(0,0,0,0.15); font-family:'Fredoka One',sans-serif; transition: transform 0.3s;}
+.card.correct{transform: scale(1.05); box-shadow:0 10px 28px rgba(0,0,0,0.25);}
+.card .word{font-size:1.6rem;font-weight:900;color:#14335e;}
+.card .def{margin-top:8px;color:#234;}
+.small{font-size:0.9rem;color:#345}
+.word-item{background:#fff;border-radius:8px;padding:8px;margin-top:8px;border:1px solid #e6f7ff;display:flex;justify-content:space-between;align-items:center}
+.progressBar{height:12px;background:#eef6ff;border-radius:999px;overflow:hidden;margin-top:8px}
+.progressFill{height:100%;width:0%;background:linear-gradient(90deg,#6b8bff,#6bffb8);transition:width .35s}
+.big-input{font-size:1.2rem;padding:10px;border-radius:8px;border:1px solid #cfe6ff}
+.feedback {font-weight:800;margin-top:10px;font-size:1.1rem;min-height:24px;}
+.correct {color:green}
+.wrong {color:#c33}
+.hint {font-size:0.95rem;color:#234;margin-top:8px}
+footer{margin-top:12px;font-size:0.9rem;color:#234}
+/* Centered character row inside the app */
+.character-wrap{
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 8px 0;
+  min-height: 90px; /* prevents layout shift when swapping characters */
+}
+
+/* Characters now flow with layout (no absolute positioning) */
+.character{
+  position: static;     /* important: remove absolute positioning */
+  width: 90px;
+  height: auto;
+  transition: transform 0.5s, opacity 0.5s;
+}
+
+.character.hop {
+  transform: translateY(-12px) scale(1.05);
+}
+
+/* Optional: smaller on phones */
+@media (max-width: 600px){
+  .character{ width: 64px; }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div>
+    <h1>Spelling Coach</h1>
+    <div class="subtitle">Game Mode — earn points and streaks!</div>
+  </div>
+</header>
+
+<div class="layout" style="margin-top:12px">
+  <div class="left">
+    <div class="panel card" id="cardPanel">
+      <div class="word" id="cardWord">Press "Start Test"</div>
+      <div class="def small" id="cardDef" style="display:none"></div>
+      <div class="progressBar"><div id="progressFill" class="progressFill"></div></div>
+    </div>
+
+    <div class="panel" style="margin-top:12px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="startTest" class="primary">▶ Start Test</button>
+        <button id="stopTest" class="secondary">■ Stop</button>
+        <button id="speakBtn" class="secondary">🔊 Hear Word</button>
+	<label for="voiceSelect">Choose Voice:</label>
+	<select id="voiceSelect"></select>
+
+        <button id="showBtn" class="secondary">Show Correct</button>
+        <button id="skipBtn" class="secondary">Skip</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Type the spelling:</label>
+        <input id="spellInput" class="big-input" placeholder="Type spelling here (press Enter to submit)">
+        <div class="controls" style="margin-top:8px">
+          <button id="submitSpell" class="primary">Submit</button>
+          <button id="hintBtn" class="secondary">Show 1st Letter</button>
+        </div>
+        <div id="feedback" class="feedback"></div>
+        <div id="sessionHint" class="hint"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:12px">
+      <label>Session length (max words this session)</label>
+      <select id="sessionLen">
+        <option value="5">5 words</option>
+        <option value="8" selected>8 words</option>
+        <option value="10">10 words</option>
+        <option value="0">All words</option>
+      </select>
+      <div class="small" style="margin-top:6px">App chooses random words up to this number.</div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="panel">
+      <label>Add a word</label>
+      <input id="wordInput" placeholder="Word (e.g., curious)">
+      <input id="defInput" placeholder="Definition (optional)" style="margin-top:8px">
+      <div class="controls">
+        <button id="addBtn" class="primary">Add</button>
+        <button id="clearAll" class="secondary">Clear all</button>
+      </div>
+
+      <label style="margin-top:10px">Bulk add (one per line: <code>word - definition</code>)</label>
+      <textarea id="bulk" placeholder="curious - eager to learn new things"></textarea>
+      <div class="controls" style="margin-top:8px">
+        <button id="bulkAdd" class="primary">Bulk Add</button>
+        <button id="exportBtn" class="secondary">Export JSON</button>
+      </div>
+
+      <label style="margin-top:12px">Word list</label>
+      <div id="wordList" style="max-height:260px;overflow:auto;margin-top:8px"></div>
+
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+        <div class="small">Points: <span id="points">0</span></div>
+        <div class="small">Streak: <span id="streak">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<footer style="margin-top:12px">Press Enter to submit. Spacebar reveals the correct spelling when not typing.</footer>
+
+<div class="character-wrap">
+<img id="robot" class="character" src="https://raw.githubusercontent.com/LaurenJo05/Spelling-Coach-Images/refs/heads/main/ChatGPT%20Image%20Sep%2016%2C%202025%2C%2009_55_20%20AM.png" alt="Robot">
+<img id="dino" class="character" src="https://raw.githubusercontent.com/LaurenJo05/Spelling-Coach-Images/refs/heads/main/234369.png" alt="Dinosaur" style="display:none">
+<img id="roblox" class="character" src="https://raw.githubusercontent.com/LaurenJo05/Spelling-Coach-Images/refs/heads/main/ChatGPT%20Image%20Sep%2017%2C%202025%2C%2008_38_45%20AM.png" style="display:none">
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  let STORAGE_KEY='spellingCoach_words_v6';
+  let META_KEY='spellingCoach_meta_v6';
+  let words=[], meta={points:0,streak:0}, testQueue=[], currentQueueIndex=-1, sessionCount=0, sessionDone=0, inTest=false;
+
+  const wordInput=document.getElementById('wordInput');
+  const defInput=document.getElementById('defInput');
+  const addBtn=document.getElementById('addBtn');
+  const clearAll=document.getElementById('clearAll');
+  const bulkEl=document.getElementById('bulk');
+  const bulkAdd=document.getElementById('bulkAdd');
+  const exportBtn=document.getElementById('exportBtn');
+  const wordListEl=document.getElementById('wordList');
+  const cardWord=document.getElementById('cardWord');
+  const cardDef=document.getElementById('cardDef');
+  const cardPanel=document.getElementById('cardPanel');
+  const startTest=document.getElementById('startTest');
+  const stopTest=document.getElementById('stopTest');
+  const speakBtn=document.getElementById('speakBtn');
+  const showBtn=document.getElementById('showBtn');
+  const skipBtn=document.getElementById('skipBtn');
+  const spellInput=document.getElementById('spellInput');
+  const submitSpell=document.getElementById('submitSpell');
+  const hintBtn=document.getElementById('hintBtn');
+  const feedback=document.getElementById('feedback');
+  const sessionHint=document.getElementById('sessionHint');
+  const sessionLen=document.getElementById('sessionLen');
+  const progressFill=document.getElementById('progressFill');
+  const pointsEl=document.getElementById('points');
+  const streakEl=document.getElementById('streak');
+  const robot=document.getElementById('robot');
+  const dino=document.getElementById('dino');
+  const roblox=document.getElementById('roblox');
+
+  // Load / Save
+  function load(){
+    try{
+      words=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+      meta=JSON.parse(localStorage.getItem(META_KEY)||'{"points":0,"streak":0}');
+    } catch(e){ words=[]; meta={points:0,streak:0}; }
+    renderList(); updateMetaUI();
+  }
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(words));
+    localStorage.setItem(META_KEY, JSON.stringify(meta));
+  }
+
+  function renderList(){
+    wordListEl.innerHTML='';
+    if(words.length===0){ wordListEl.innerHTML='<div class="small">No words yet — add some!</div>'; return; }
+    words.forEach((w,i)=>{
+      const el=document.createElement('div');
+      el.className='word-item';
+      const left=document.createElement('div');
+      left.innerHTML=`<strong>${escapeHtml(w.word)}</strong><div class="small" style="margin-top:4px">${escapeHtml(w.def||'')}</div>`;
+      const right=document.createElement('div');
+      const del=document.createElement('button');
+      del.textContent='Delete';
+      del.className='secondary';
+      del.style.marginLeft='8px';
+      del.addEventListener('click',()=>{ if(!confirm('Delete this word?')) return; words.splice(i,1); save(); renderList(); });
+      right.appendChild(del);
+      el.appendChild(left); el.appendChild(right);
+      wordListEl.appendChild(el);
+    });
+  }
+
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+  function normalize(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9']/g,'').trim(); }
+  function updateMetaUI(){ pointsEl.textContent=meta.points||0; streakEl.textContent=meta.streak||0; }
+
+  function buildQueue(){
+    testQueue=[];
+    if(words.length===0) return;
+    for(let i=0;i<words.length;i++) testQueue.push(i);
+    shuffle(testQueue);
+    const len=parseInt(sessionLen.value,10)||0;
+    if(len>0 && len<testQueue.length) testQueue=testQueue.slice(0,len);
+    sessionCount=testQueue.length; currentQueueIndex=-1; sessionDone=0; progressFill.style.width='0%';
+  }
+  
+  function getActiveCharacter(){
+  if (roblox && roblox.style.display !== 'none') return roblox;
+  if (dino && dino.style.display !== 'none')   return dino;
+  return robot; // default
+}
+
+function celebrateCharacter(){
+  var el = getActiveCharacter();
+  if (!el) return;
+  el.classList.add('hop');
+  setTimeout(function(){ el.classList.remove('hop'); }, 500);
+}
+  // Start / Stop
+  startTest.addEventListener('click',()=>{
+    if(words.length===0){ alert('Add words first'); return; }
+    buildQueue(); if(testQueue.length===0){ alert('No words selected'); return; }
+    inTest=true; nextInQueue(); spellInput.focus();
+  });
+  stopTest.addEventListener('click',()=>{
+    inTest=false; testQueue=[]; currentQueueIndex=-1; cardWord.textContent='Test stopped'; cardDef.style.display='none'; sessionHint.textContent='Stopped';
+  });
+
+function nextInQueue(){
+  currentQueueIndex++;
+  if(currentQueueIndex >= testQueue.length){
+    sessionHint.textContent = sessionCount + ' / ' + sessionCount; // ✅ final update
+    updateProgress(); // Optional: force progress bar to 100%
+    endSession();
+    return;
+  }
+
+  const wi = testQueue[currentQueueIndex];
+  const w = words[wi];
+  cardWord.textContent = w.word;
+  cardDef.textContent = w.def || '';
+  cardDef.style.display = 'none';
+  spellInput.value = '';
+  feedback.textContent = '';
+  sessionHint.textContent = sessionDone + ' / ' + sessionCount;
+  updateProgress();
+  setTimeout(() => speakWord(w.word), 200);
+}
+
+ var voiceSelect = document.getElementById('voiceSelect');
+var voices = [];
+
+function loadVoices() {
+  voices = speechSynthesis.getVoices();
+  voiceSelect.innerHTML = '';
+  voices.forEach((v, i) => {
+    var option = document.createElement('option');
+    option.value = i;
+    option.textContent = v.name + ' (' + v.lang + ')';
+    voiceSelect.appendChild(option);
+  });
+}
+
+// Some browsers (like Chrome) load voices asynchronously
+speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
+function speakWord(text) {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.95;
+
+    var selected = voiceSelect.value;
+    if (voices[selected]) {
+      u.voice = voices[selected];
+    }
+
+    window.speechSynthesis.speak(u);
+  } catch (e) {
+    console.log('TTS error', e);
+  }
+}
+
+
+ function submitSpelling() {
+  if (!inTest || currentQueueIndex < 0 || currentQueueIndex >= testQueue.length) {
+    feedback.textContent = 'Start the test first';
+    return;
+  }
+
+  var target = words[testQueue[currentQueueIndex]].word;
+  var attempt = spellInput.value.trim();
+  if (!attempt) {
+    feedback.textContent = 'Type something to submit';
+    return;
+  }
+
+  var normA = normalize(attempt), normT = normalize(target);
+
+  if (normA === normT) {
+    document.getElementById('correctSound').play(); // ✅ Correct sound
+    feedback.innerHTML = '<span class="correct">✅ Correct!</span>';
+    cardPanel.classList.add('correct');
+    setTimeout(() => cardPanel.classList.remove('correct'), 500);
+
+    meta.points = (meta.points || 0) + 10;
+    meta.streak = (meta.streak || 0) + 1;
+
+    if (meta.streak > 0 && meta.streak % 3 === 0) {
+      meta.points += 5;
+      giveBadge('🔥 Streak Bonus! +5 points');
+      celebrateCharacter();
+    } else {
+      giveBadge('✅ Nice!');
+    }
+
+    save();
+    updateMetaUI();
+    sessionDone++;
+    updateProgress();
+    burstConfetti();
+    updateCharacters(meta.streak);
+    celebrateCharacter(); 
+    setTimeout(() => {
+  nextInQueue();
+  updateProgress(); // 🛠 force update again after next word or end
+}, 700);
+  } else {
+    document.getElementById('wrongSound').play(); // ❌ Wrong sound
+    feedback.innerHTML = '<span class="wrong">❌ Not quite — try again or press "Show Correct"</span>';
+    meta.streak = 0;
+    save();
+    updateMetaUI();
+    updateCharacters(meta.streak);
+  }
+}
+
+  submitSpell.addEventListener('click', submitSpelling);
+  spellInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); submitSpelling(); } });
+
+  hintBtn.addEventListener('click',()=>{
+    if(!inTest||currentQueueIndex<0) return;
+    spellInput.value=words[testQueue[currentQueueIndex]].word.charAt(0);
+    spellInput.focus();
+  });
+
+  addBtn.addEventListener('click',()=>{
+    const w=wordInput.value.trim(), d=defInput.value.trim();
+    if(!w){ alert('Enter a word'); return; }
+    words.push({word:w,def:d}); save(); renderList(); wordInput.value=''; defInput.value='';
+  });
+  clearAll.addEventListener('click',()=>{ if(!confirm('Clear all words?')) return; words=[]; save(); renderList(); });
+  bulkAdd.addEventListener('click',()=>{
+    const txt=bulkEl.value.trim(); if(!txt){ alert('Paste lines to bulk-add'); return; }
+    const lines=txt.split(/\r?\n/); let added=0;
+    lines.forEach(line=>{
+      const sep=line.indexOf('-'); let w,d;
+      if(sep===-1){ w=line.trim(); d=''; } else { w=line.slice(0,sep).trim(); d=line.slice(sep+1).trim(); }
+      if(w){ words.push({word:w,def:d}); added++; }
+    });
+    if(added){ save(); renderList(); bulkEl.value=''; alert('Added '+added+' words'); }
+  });
+  exportBtn.addEventListener('click',()=>{
+    const json=JSON.stringify(words,null,2); const w=window.open('', '_blank');
+    if(w) w.document.write('<pre>'+escapeHtml(json)+'</pre>'); else { console.log(json); alert('Export opened in new tab or check console'); }
+  });
+
+  function updateCharacters(streak){
+    robot.style.display='none'; dino.style.display='none'; roblox.style.display='none';
+    if(streak>=5) roblox.style.display='block';
+    else if(streak>=3) dino.style.display='block';
+    else robot.style.display='block';
+  }
+
+  function burstConfetti(){
+    const colors=['#ff6b6b','#ffd36b','#6b8bff','#6bffb8','#ff9a3c'];
+    for(let i=0;i<30;i++){
+      const div=document.createElement('div');
+      div.style.position='fixed'; div.style.width='8px'; div.style.height='8px'; div.style.background=colors[Math.floor(Math.random()*colors.length)];
+      div.style.left=Math.random()*window.innerWidth+'px'; div.style.top='-10px'; div.style.borderRadius='50%'; div.style.zIndex=9999;
+      document.body.appendChild(div);
+      div.animate([{transform:'translateY(0px)'},{transform:'translateY('+(Math.random()*400+200)+'px)'}],{duration:1400+Math.random()*600,iterations:1,easing:'ease-out'});
+      setTimeout(()=>div.remove(),1500);
+    }
+  }
+
+  function updateProgress(){ if(!sessionCount) { progressFill.style.width='0%'; return; } progressFill.style.width=Math.round((sessionDone/sessionCount)*100)+'%'; }
+  function giveBadge(msg){ feedback.textContent=msg; setTimeout(()=>{ if(feedback.textContent===msg) feedback.textContent=''; },1400); }
+
+  function addFloatingStar(){ const star=document.createElement('div'); star.style.position='fixed'; star.style.width='6px'; star.style.height='6px'; star.style.background='#fffc00'; star.style.borderRadius='50%';
+    star.style.left=Math.random()*window.innerWidth+'px'; star.style.top='-10px'; star.style.zIndex='0';
+    document.body.appendChild(star); star.animate([{transform:'translateY(0px)'},{transform:'translateY('+(window.innerHeight+20)+'px)'}],{duration:4000+Math.random()*3000,iterations:1,easing:'linear'});
+    setTimeout(()=>star.remove(),7500);}
+  setInterval(addFloatingStar,400);
+
+    load();
+});
+</script>
+
+<!-- Audio elements must be outside of <script> -->
+<audio id="correctSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
+<audio id="wrongSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js")
+    .then(() => console.log("Service Worker registered!"))
+    .catch(err => console.log("SW error:", err));
+}
+</script>
+
+</body>
+</html>
+
