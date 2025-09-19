@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<link rel="manifest" href="/Spelling-Coach/manifest.json">
+<link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#2f62ff">
 <title>Spelling Buddy — Game Mode</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <style>
 body{
   margin:0;
@@ -451,14 +451,18 @@ function speakWord(text) {
 <audio id="wrongSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
 
 <script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/Spelling-Coach/service-worker.js")
-    .then(() => console.log("Service Worker registered!"))
-    .catch(err => console.log("SW error:", err));
-}
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(() => console.log('Service Worker registered'))
+        .catch(err => console.error('Service Worker registration failed:', err));
+    });
+  }
 </script>
+
 
 </body>
 </html>
+
 
 
