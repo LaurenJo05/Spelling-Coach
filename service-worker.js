@@ -5,9 +5,9 @@ const FILES_TO_CACHE = [
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
-  "./images/robot.png",
-  "./images/dino.png",
-  "./images/roblox.png"
+  "./Images/robot.png",
+  "./Images/dino.png",
+  "./Images/roblox.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -21,6 +21,7 @@ self.addEventListener("fetch", (event) => {
     caches.match(event.request).then((resp) => resp || fetch(event.request))
   );
 });
+
 
 
 
